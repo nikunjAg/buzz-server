@@ -15,7 +15,9 @@
 		"express": "^4.17.1",
 		"helmet": "^4.6.0",
 		"mongoose": "^6.1.2",
-		"morgan": "^1.10.0"
+		"morgan": "^1.10.0",
+		"passport": "^0.5.1",
+		"passport-google-oauth20": "^2.0.0"
 	},
 	"devDependencies": {
 		"eslint": "^8.4.1",
