@@ -10,6 +10,7 @@ const api = require('./api/index');
 
 const app = express();
 
+require('./database');
 require('./auth/google-sso');
 
 app.use(express.json());
@@ -30,6 +31,19 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use((req, res, next) => {
+  console.log('--------CUSTOM LOGGER-------');
+  console.log(req.session);
+  console.log(req.user);
+
+  next();
+});
+
 app.use('/api/v1', api);
+
+app.use((err, req, res, next) => {
+  console.log('Error', err);
+  res.status(500).send(err);
+});
 
 module.exports = app;

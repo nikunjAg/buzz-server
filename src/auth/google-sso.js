@@ -5,7 +5,7 @@ const User = require('../models/User');
 
 const PORT = process.env.PORT || 8000;
 
-const GOOGLE_CALLBACK_URL = `http://localhost:${PORT}/api/v1/auth/google/callabck`;
+const GOOGLE_CALLBACK_URL = `http://localhost:${PORT}/api/v1/auth/google/callback`;
 
 passport.use(
   new GoogleStartegy(
