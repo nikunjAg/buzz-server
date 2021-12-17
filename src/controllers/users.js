@@ -24,7 +24,7 @@ exports.getUserDetails = async (req, res, next) => {
       console.log('Hey');
       userId = req.user._id;
     }
-    console.log('UserId: ', userId);
+
     const user = await User.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(userId) } },
       {
@@ -39,9 +39,10 @@ exports.getUserDetails = async (req, res, next) => {
       },
     ]);
 
-    res
-      .status(200)
-      .json({ message: 'User fetched successfully', user: user[0] });
+    res.status(200).json({
+      message: 'User fetched successfully',
+      user: user[0],
+    });
   } catch (err) {
     next(err);
   }
