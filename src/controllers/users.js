@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 exports.getAllUsers = async (req, res, next) => {
@@ -20,11 +21,12 @@ exports.getUserDetails = async (req, res, next) => {
 
     if (req.user._id === id || id === 'me') {
       // User is requesting his own information
+      console.log('Hey');
       userId = req.user._id;
     }
-
+    console.log('UserId: ', userId);
     const user = await User.aggregate([
-      { $match: { _id: id } },
+      { $match: { _id: mongoose.Types.ObjectId(userId) } },
       {
         $project: {
           name: 1,
@@ -37,7 +39,9 @@ exports.getUserDetails = async (req, res, next) => {
       },
     ]);
 
-    res.status(200).json({ message: 'User fetched successfully', user });
+    res
+      .status(200)
+      .json({ message: 'User fetched successfully', user: user[0] });
   } catch (err) {
     next(err);
   }
