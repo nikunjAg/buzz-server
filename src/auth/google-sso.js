@@ -15,7 +15,7 @@ passport.use(
       callbackURL: GOOGLE_CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
-      console.log('Profile', profile);
+      // console.log('Profile', profile);
 
       try {
         const fetchedUser = await User.findOne({
@@ -46,7 +46,7 @@ passport.use(
 
 // Serializing the user._id into the session
 passport.serializeUser(function (user, done) {
-  console.log('Serializing: ', user);
+  console.log('Serializing: ', user.email);
   done(null, user._id);
 });
 
@@ -54,6 +54,7 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(async function (id, done) {
   try {
     const user = await User.findById(id);
+    console.log(`Deserializing ${id} ${user.email}`);
     if (!user) return done(null, false);
 
     done(null, user);
