@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const cloudinary = require('../utils/cloudinary');
 
 const Post = require('../models/Post');
 
@@ -12,7 +13,7 @@ exports.getPosts = async (req, res, next) => {
     const matchStage = { $match: { isFlagged: true } };
     const matchFriendsAndMyPostsStage = {
       $match: {
-        _id: {
+        postedBy: {
           $in: [req.user._id, ...req.user.friends],
         },
       },
@@ -28,6 +29,12 @@ exports.getPosts = async (req, res, next) => {
         dislikes: { $size: '$dislikes' },
         isDisliked: { $in: [req.user._id, '$dislikes'] },
         comments: { $size: '$comments' },
+        createdAt: 1,
+      },
+    };
+    const sortStage = {
+      $sort: {
+        createdAt: -1,
       },
     };
 
@@ -40,11 +47,16 @@ exports.getPosts = async (req, res, next) => {
         throw error;
       }
 
-      aggregatedPosts = await Post.aggregate([matchStage, projectStage]);
+      aggregatedPosts = await Post.aggregate([
+        matchStage,
+        projectStage,
+        sortStage,
+      ]);
     } else {
       aggregatedPosts = await Post.aggregate([
         matchFriendsAndMyPostsStage,
         projectStage,
+        sortStage,
       ]);
     }
 
@@ -53,6 +65,48 @@ exports.getPosts = async (req, res, next) => {
     return res.json({
       message: 'Posts fetched successfully',
       posts,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createPost = async (req, res, next) => {
+  try {
+    const { content, images } = req.body;
+
+    const imageUploadPromises = [];
+    if (Array.isArray(images) && images.length > 0) {
+      for (let image of images) {
+        imageUploadPromises.push(
+          cloudinary.uploader.upload(image, {
+            upload_preset: 'dev_setup',
+          })
+        );
+      }
+    }
+
+    const responses = await Promise.all(imageUploadPromises);
+    const public_ids = responses.map((response) => response.public_id);
+
+    const post = new Post({
+      content,
+      images: public_ids,
+      postedBy: req.user._id,
+    });
+
+    const savedPost = await post.save();
+
+    return res.json({
+      message: 'Post created successfully',
+      post: {
+        savedPost,
+        postedBy: {
+          _id: req.user._id,
+          name: req.user.name,
+          profileImage: req.user.profileImage,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -76,6 +130,7 @@ exports.getPost = async (req, res, next) => {
           dislikes: { $size: '$dislikes' },
           isDisliked: { $in: [req.user._id, '$dislikes'] },
           comments: 1,
+          createdAt: 1,
         },
       },
     ]);
