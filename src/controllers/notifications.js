@@ -37,7 +37,20 @@ exports.getNotifications = async (req, res, next) => {
         select: 'name profileImage',
       });
     } else {
-      notifications = await User.findById({ _id: userId }, 'notifications');
+      ({ notifications } = await User.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            'notifications.$[el].unread': false,
+          },
+        },
+        {
+          arrayFilters: [{ 'el.unread': true }],
+          populate: {
+            path: 'notifications.from',
+          },
+        }
+      ));
     }
 
     res.status(200).json({
