@@ -31,6 +31,11 @@ exports.getNotifications = async (req, res, next) => {
           },
         },
       ]);
+
+      notifications = await User.populate(notifications, {
+        path: 'notifications.from',
+        select: 'name profileImage',
+      });
     } else {
       notifications = await User.findById({ _id: userId }, 'notifications');
     }
