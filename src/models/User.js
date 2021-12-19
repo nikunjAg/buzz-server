@@ -37,7 +37,14 @@ const userSchema = new Schema(
     ],
     notifications: [
       {
-        // query also unread notifications
+        from: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        unread: {
+          type: Boolean,
+          default: true,
+        },
       },
     ],
     isModerator: {
