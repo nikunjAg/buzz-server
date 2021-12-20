@@ -9,6 +9,6 @@ router.get('/posts', getPosts);
 
 router.post('/posts', createPost);
 
-router.get('/posts/:id', postApi);
+router.use('/posts/:id', postApi);
 
 module.exports = router;

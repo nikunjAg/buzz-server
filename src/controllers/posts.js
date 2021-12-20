@@ -148,3 +148,102 @@ exports.getPost = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.likePost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+    const { _id: userId } = req.user;
+
+    const post = await Post.findById(postId);
+    let likedAdded;
+
+    if (post.dislikes.includes(userId)) {
+      post.dislikes = post.dislikes.filter(
+        (dislikedBy) => dislikedBy.toString() !== userId.toString()
+      );
+    }
+
+    if (post.likes.includes(userId)) {
+      post.likes = post.likes.filter(
+        (likedBy) => likedBy.toString() !== userId.toString()
+      );
+    } else {
+      post.likes = [...post.likes, userId];
+      likedAdded = true;
+    }
+
+    const updatedPost = await post.save();
+
+    res.json({
+      message: `Like ${likedAdded ? 'Added' : 'Removed'}`,
+      likes: updatedPost.likes.length,
+      dislikes: updatedPost.dislikes.length,
+      updatedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.dislikePost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+    const { _id: userId } = req.user;
+
+    const post = await Post.findById(postId);
+    let dislikeAdded;
+
+    if (post.likes.includes(userId)) {
+      post.likes = post.likes.filter(
+        (likedBy) => likedBy.toString() !== userId.toString()
+      );
+    }
+
+    if (post.dislikes.includes(userId)) {
+      post.dislikes = post.dislikes.filter(
+        (dislikedBy) => dislikedBy.toString() !== userId.toString()
+      );
+    } else {
+      post.dislikes = [...post.dislikes, userId];
+      dislikeAdded = true;
+    }
+
+    const updatedPost = await post.save();
+
+    res.json({
+      message: `Dislike ${dislikeAdded ? 'Added' : 'Removed'}`,
+      likes: updatedPost.likes.length,
+      dislikes: updatedPost.dislikes.length,
+      updatedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.commentPost = async (req, res, next) => {
+  try {
+    const { content } = req.body;
+    const { id: postId } = req.params;
+    const { _id: userId } = req.user;
+
+    const post = await Post.findById(postId);
+    post.comments = [
+      ...post.comments,
+      {
+        content,
+        postedBy: userId,
+      },
+    ];
+
+    const savedPost = await post.save();
+
+    res.json({
+      message: 'Commented successfully',
+      comments: savedPost.comments.length,
+      post: savedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
