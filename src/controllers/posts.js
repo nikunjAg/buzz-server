@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const cloudinary = require('../utils/cloudinary');
 
+const User = require('../models/User');
 const Post = require('../models/Post');
 
 exports.getPosts = async (req, res, next) => {
@@ -96,11 +97,23 @@ exports.createPost = async (req, res, next) => {
     });
 
     const savedPost = await post.save();
+    req.user = await User.findOneAndUpdate(
+      { _id: req.user._id },
+      {
+        $push: {
+          posts: savedPost._id,
+        },
+      },
+      { new: true }
+    );
 
     return res.json({
       message: 'Post created successfully',
       post: {
-        savedPost,
+        ...savedPost._doc,
+        likes: savedPost._doc.likes.length,
+        dislikes: savedPost._doc.dislikes.length,
+        comments: savedPost._doc.comments.length,
         postedBy: {
           _id: req.user._id,
           name: req.user.name,
@@ -129,7 +142,7 @@ exports.getPost = async (req, res, next) => {
           isLiked: { $in: [req.user._id, '$likes'] },
           dislikes: { $size: '$dislikes' },
           isDisliked: { $in: [req.user._id, '$dislikes'] },
-          comments: 1,
+          comments: { $size: '$comments' },
           createdAt: 1,
         },
       },
@@ -137,7 +150,6 @@ exports.getPost = async (req, res, next) => {
 
     const post = await Post.populate(aggregatedPost, [
       { path: 'postedBy', select: 'name profileImage' },
-      { path: 'comments.postedBy', select: 'name profileImage' },
     ]);
 
     res.json({

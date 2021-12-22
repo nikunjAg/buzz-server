@@ -17,6 +17,13 @@ require('./utils/cloudinary');
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+app.use((req, res, next) => {
+  console.log('\n\n');
+  console.log('--------INCOMING REQUEST-------');
+
+  next();
+});
+
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
@@ -31,14 +38,6 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.use((req, res, next) => {
-  console.log('--------CUSTOM LOGGER-------');
-  console.log(req.session);
-  console.log(req.user);
-
-  next();
-});
 
 app.use('/api/v1', api);
 

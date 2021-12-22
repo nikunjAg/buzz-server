@@ -47,3 +47,48 @@ exports.getUserDetails = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getUserFriends = async (req, res, next) => {
+  try {
+    const { _id: userId } = req.user;
+
+    const friends = await User.findById(
+      userId,
+      { friends: 1 },
+      {
+        populate: {
+          path: 'friends',
+          select: 'name profileImage',
+        },
+      }
+    );
+
+    res.json({
+      message: 'User Friends fetched',
+      friends,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getUserSuggestions = async (req, res, next) => {
+  try {
+    const { _id: userId } = req.user;
+
+    const suggestions = await User.find(
+      {},
+      {
+        name: 1,
+        profileImage: 1,
+      }
+    );
+
+    res.json({
+      message: 'User Friends fetched',
+      suggestions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
