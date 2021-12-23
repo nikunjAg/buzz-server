@@ -20,6 +20,7 @@ const postSchema = new Schema(
     },
     comments: [
       {
+        id: String,
         content: String,
         created_at: {
           type: Date,

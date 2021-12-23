@@ -165,32 +165,31 @@ exports.likePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
     const { _id: userId } = req.user;
+    const { unlike } = req.body;
 
-    const post = await Post.findById(postId);
-    let likedAdded;
+    let updatedPost;
 
-    if (post.dislikes.includes(userId)) {
-      post.dislikes = post.dislikes.filter(
-        (dislikedBy) => dislikedBy.toString() !== userId.toString()
-      );
-    }
-
-    if (post.likes.includes(userId)) {
-      post.likes = post.likes.filter(
-        (likedBy) => likedBy.toString() !== userId.toString()
+    if (unlike) {
+      // Means already liked just unlike -> Means remove user from likes array
+      updatedPost = await Post.findOneAndUpdate(
+        { _id: postId },
+        { $pull: { likes: userId } },
+        { new: true }
       );
     } else {
-      post.likes = [...post.likes, userId];
-      likedAdded = true;
+      // Like the post
+      updatedPost = await Post.findOneAndUpdate(
+        { _id: postId },
+        { $pull: { dislikes: userId }, $addToSet: { likes: userId } },
+        { new: true }
+      );
     }
 
-    const updatedPost = await post.save();
-
     res.json({
-      message: `Like ${likedAdded ? 'Added' : 'Removed'}`,
-      likes: updatedPost.likes.length,
-      dislikes: updatedPost.dislikes.length,
-      updatedPost,
+      message: `Operation completed`,
+      isLiked: !unlike,
+      isDisliked: false,
+      post: updatedPost,
     });
   } catch (error) {
     next(error);
@@ -201,32 +200,51 @@ exports.dislikePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
     const { _id: userId } = req.user;
+    const { undislike } = req.body;
 
-    const post = await Post.findById(postId);
-    let dislikeAdded;
+    let updatedPost;
 
-    if (post.likes.includes(userId)) {
-      post.likes = post.likes.filter(
-        (likedBy) => likedBy.toString() !== userId.toString()
-      );
-    }
-
-    if (post.dislikes.includes(userId)) {
-      post.dislikes = post.dislikes.filter(
-        (dislikedBy) => dislikedBy.toString() !== userId.toString()
+    if (undislike) {
+      // Means already disliked just undislike -> Means remove user from dislikes array
+      updatedPost = await Post.findOneAndUpdate(
+        { _id: postId },
+        { $pull: { dislikes: userId } },
+        { new: true }
       );
     } else {
-      post.dislikes = [...post.dislikes, userId];
-      dislikeAdded = true;
+      // Dislike the post
+      updatedPost = await Post.findOneAndUpdate(
+        { _id: postId },
+        { $pull: { likes: userId }, $addToSet: { dislikes: userId } },
+        { new: true }
+      );
     }
 
-    const updatedPost = await post.save();
+    res.json({
+      message: `Operation completed`,
+      isLiked: false,
+      isDisliked: !undislike,
+      post: updatedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getComments = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+
+    const userData = await Post.findById(postId, 'comments', {
+      populate: {
+        path: 'comments.postedBy',
+        select: 'name profileImage',
+      },
+    });
 
     res.json({
-      message: `Dislike ${dislikeAdded ? 'Added' : 'Removed'}`,
-      likes: updatedPost.likes.length,
-      dislikes: updatedPost.dislikes.length,
-      updatedPost,
+      message: 'Comments fetched successfully.',
+      comments: userData.comments,
     });
   } catch (error) {
     next(error);
@@ -254,6 +272,89 @@ exports.commentPost = async (req, res, next) => {
       message: 'Commented successfully',
       comments: savedPost.comments.length,
       post: savedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getFlaggedPosts = async (req, res, next) => {
+  try {
+    const { isModerator } = req.user;
+    if (!isModerator) {
+      return res
+        .status(403)
+        .json({ message: 'Ypu are not authrized to access this resource' });
+    }
+
+    const posts = await Post.find({ isFlagged: true });
+    return res.json({
+      message: 'Posts fetched successfully',
+      posts,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.flagPost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: postId },
+      {
+        $set: {
+          isFlagged: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ['$isFlagged', false] },
+                  { $eq: ['$isVerified', false] },
+                ],
+              },
+              true,
+              false,
+            ],
+          },
+        },
+      }
+    );
+
+    console.log('Updated Flagged Post ', updatedPost);
+
+    res.json({
+      message: 'Flagged post',
+      post: updatedPost,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.verifyPost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+    const { isModerator } = req.user;
+
+    if (!isModerator) {
+      return res.status(403).json({
+        message: 'You are not authorized to access this resource',
+      });
+    }
+
+    const post = await Post.findByIdAndUpdate(postId, [
+      {
+        $set: {
+          isFlagged: false,
+          isVerified: true,
+        },
+      },
+    ]);
+
+    res.json({
+      message: 'Post verified successfully',
+      post: post,
     });
   } catch (error) {
     next(error);
