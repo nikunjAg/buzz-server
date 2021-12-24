@@ -240,7 +240,7 @@ exports.getComments = async (req, res, next) => {
         path: 'comments.postedBy',
         select: 'name profileImage',
       },
-    });
+    }).lean();
 
     res.json({
       message: 'Comments fetched successfully.',
@@ -287,7 +287,7 @@ exports.getFlaggedPosts = async (req, res, next) => {
         .json({ message: 'Ypu are not authrized to access this resource' });
     }
 
-    const posts = await Post.find({ isFlagged: true });
+    const posts = await Post.find({ isFlagged: true }).lean();
     return res.json({
       message: 'Posts fetched successfully',
       posts,

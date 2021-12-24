@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
+    const users = await User.find().lean();
     res.json({
       message: 'Users fetched',
       users,
@@ -61,7 +61,7 @@ exports.getUserFriends = async (req, res, next) => {
           select: 'name profileImage',
         },
       }
-    );
+    ).lean();
 
     res.json({
       message: 'User Friends fetched',
@@ -77,12 +77,12 @@ exports.getUserSuggestions = async (req, res, next) => {
     const { _id: userId } = req.user;
 
     const suggestions = await User.find(
-      {},
+      { _id: { $ne: userId } },
       {
         name: 1,
         profileImage: 1,
       }
-    );
+    ).lean();
 
     res.json({
       message: 'User Friends fetched',
