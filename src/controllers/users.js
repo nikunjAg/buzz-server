@@ -48,6 +48,30 @@ exports.getUserDetails = async (req, res, next) => {
   }
 };
 
+exports.searchUsers = async (req, res, next) => {
+  try {
+    const { name } = req.query;
+    console.log(name);
+    const users = await User.find(
+      {
+        name: {
+          $regex: new RegExp(name, 'i'),
+        },
+      },
+      'name profileImage'
+    )
+      .limit(5)
+      .lean();
+
+    res.json({
+      message: 'Users fetched successfully',
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUserFriends = async (req, res, next) => {
   try {
     const { _id: userId } = req.user;
