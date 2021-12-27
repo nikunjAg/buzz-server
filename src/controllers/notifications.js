@@ -61,3 +61,107 @@ exports.getNotifications = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.acceptNotification = async (req, res, next) => {
+  try {
+    const { id: notificationId } = req.params;
+    const { _id: userId } = req.user;
+    const notificationIndex = req.user.notifications.findIndex(
+      (notification) => notification._id.toString() === notificationId
+    );
+
+    if (notificationIndex === -1) {
+      return res.json({
+        message: 'No such notification exists',
+      });
+    }
+
+    const { from: senderId } = req.user.notifications[notificationIndex];
+
+    // pull the notification by id
+    // add the friend to user
+    const updatedUser = await User.findOneAndUpdate(
+      userId,
+      {
+        $pull: {
+          notifications: { _id: notificationId },
+          pendingRequests: senderId,
+        },
+        $push: {
+          friends: senderId,
+        },
+      },
+      {
+        new: true,
+      }
+    ).lean();
+
+    // add the friend to sender
+    // remove the pending requests from sender
+    console.log(senderId);
+    await User.findByIdAndUpdate(senderId, {
+      $pull: {
+        pendingRequests: userId,
+      },
+      $push: {
+        friends: userId,
+      },
+    });
+
+    return res.json({
+      message: 'Friend Added',
+      user: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.declineNotification = async (req, res, next) => {
+  try {
+    const { id: notificationId } = req.params;
+    const { _id: userId } = req.user;
+    const notificationIndex = req.user.notifications.findIndex(
+      (notification) => notification._id.toString() === notificationId
+    );
+
+    if (notificationIndex === -1) {
+      return res.json({
+        message: 'No such notification exists',
+      });
+    }
+
+    const { from: senderId } = req.user.notifications[notificationIndex];
+
+    // pull the notification by id
+    // add the friend to user
+    const updatedUser = await User.findOneAndUpdate(
+      userId,
+      {
+        $pull: {
+          notifications: { _id: notificationId },
+          pendingRequests: senderId,
+        },
+      },
+      {
+        new: true,
+      }
+    ).lean();
+
+    // add the friend to sender
+    // remove the pending requests from sender
+    console.log(senderId);
+    await User.findByIdAndUpdate(senderId, {
+      $pull: {
+        pendingRequests: userId,
+      },
+    });
+
+    return res.json({
+      message: 'Removed Notification',
+      user: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

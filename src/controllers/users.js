@@ -80,7 +80,7 @@ exports.getUserFriends = async (req, res, next) => {
   try {
     const { _id: userId } = req.user;
 
-    const friends = await User.findById(
+    const { friends } = await User.findById(
       userId,
       { friends: 1 },
       {
