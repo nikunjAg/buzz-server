@@ -18,24 +18,28 @@ exports.getUserDetails = async (req, res, next) => {
     const { id } = req.params;
 
     let userId = id;
+    const projectFields = {
+      name: 1,
+      email: 1,
+      profileImage: 1,
+      coverImage: 1,
+      isModerator: 1,
+      postsCount: { $size: '$posts' },
+    };
 
     if (req.user._id === id || id === 'me') {
       // User is requesting his own information
-      console.log('Hey');
       userId = req.user._id;
+      projectFields.friends = 1;
+      projectFields.pendingRequests = 1;
+    } else {
+      projectFields.friendsCount = { $size: '$friends' };
     }
 
     const user = await User.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(userId) } },
       {
-        $project: {
-          name: 1,
-          email: 1,
-          profileImage: 1,
-          coverImage: 1,
-          isModerator: 1,
-          postsCount: { $size: '$posts' },
-        },
+        $project: projectFields,
       },
     ]);
 
@@ -111,6 +115,54 @@ exports.getUserSuggestions = async (req, res, next) => {
     res.json({
       message: 'User Friends fetched',
       suggestions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.postFriendRequest = async (req, res, next) => {
+  try {
+    const { _id: senderId } = req.user;
+    const { id: receiverId } = req.params;
+
+    if (req.user.friends.includes(receiverId)) {
+      return res.json({
+        message: 'Already a friend',
+      });
+    }
+
+    if (req.user.pendingRequests.includes(receiverId)) {
+      return res.json({
+        message: 'Already sent a friend request',
+      });
+    }
+
+    req.user = await User.findByIdAndUpdate(
+      senderId,
+      {
+        $push: {
+          pendingRequests: receiverId,
+        },
+      },
+      { new: true }
+    );
+
+    await User.findOneAndUpdate(
+      { _id: receiverId },
+      {
+        $push: {
+          notifications: {
+            from: senderId,
+            $position: 0,
+          },
+        },
+      }
+    );
+
+    return res.json({
+      message: 'Request sent successfully',
+      user: req.user,
     });
   } catch (error) {
     next(error);

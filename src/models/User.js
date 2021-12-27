@@ -35,9 +35,9 @@ const userSchema = new Schema(
         ref: 'User',
       },
     ],
+    pendingRequests: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     notifications: [
       {
-        id: { type: String, required: true },
         from: {
           type: Schema.Types.ObjectId,
           ref: 'User',

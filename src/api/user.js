@@ -4,6 +4,7 @@ const {
   getUserDetails,
   getUserFriends,
   getUserSuggestions,
+  postFriendRequest,
 } = require('../controllers/users');
 
 const router = express.Router({ mergeParams: true });
@@ -12,6 +13,7 @@ const router = express.Router({ mergeParams: true });
 
 router.get('/', getUserDetails);
 router.get('/friends', getUserFriends);
+router.post('/friendRequest', postFriendRequest);
 router.get('/suggestions', getUserSuggestions);
 
 module.exports = router;
