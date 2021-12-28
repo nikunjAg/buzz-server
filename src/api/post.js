@@ -6,27 +6,29 @@ const {
   dislikePost,
   getComments,
   commentPost,
-  getFlaggedPosts,
   flagPost,
   verifyPost,
+  declinePost,
 } = require('../controllers/posts');
 
 const router = express.Router({ mergeParams: true });
 
 // BASE ROUTE = /posts/:id
 
+// Get a post
 router.get('/', getPost);
 
+// Like or Dislike a post
 router.post('/likes', likePost);
-
 router.post('/dislikes', dislikePost);
 
+// Fetching or adding a comment for a post
 router.get('/comments', getComments);
 router.post('/comments', commentPost);
 
-router.get('/flagged', getFlaggedPosts);
-router.post('/flagged', flagPost);
-
+// Flagging Post and Moderator APIs
+router.post('/flag', flagPost);
 router.post('/verify', verifyPost);
+router.post('/decline', declinePost);
 
 module.exports = router;

@@ -25,6 +25,7 @@ exports.getPosts = async (req, res, next) => {
         images: 1,
         postedBy: 1,
         isFlagged: 1,
+        isVerified: 1,
         likes: { $size: '$likes' },
         isLiked: { $in: [req.user._id, '$likes'] },
         dislikes: { $size: '$dislikes' },
@@ -138,6 +139,7 @@ exports.getPost = async (req, res, next) => {
           images: 1,
           postedBy: 1,
           isFlagged: 1,
+          isVerified: 1,
           likes: { $size: '$likes' },
           isLiked: { $in: [req.user._id, '$likes'] },
           dislikes: { $size: '$dislikes' },
@@ -287,9 +289,31 @@ exports.getFlaggedPosts = async (req, res, next) => {
         .json({ message: 'Ypu are not authrized to access this resource' });
     }
 
-    const posts = await Post.find({ isFlagged: true }).lean();
-    return res.json({
-      message: 'Posts fetched successfully',
+    const aggregatedPosts = await Post.aggregate([
+      { $match: { isFlagged: true } },
+      {
+        $project: {
+          content: 1,
+          images: 1,
+          postedBy: 1,
+          isFlagged: 1,
+          isVerified: 1,
+          likes: { $size: '$likes' },
+          isLiked: { $in: [req.user._id, '$likes'] },
+          dislikes: { $size: '$dislikes' },
+          isDisliked: { $in: [req.user._id, '$dislikes'] },
+          comments: { $size: '$comments' },
+          createdAt: 1,
+        },
+      },
+    ]);
+
+    const posts = await Post.populate(aggregatedPosts, [
+      { path: 'postedBy', select: 'name profileImage' },
+    ]);
+
+    res.json({
+      message: 'Post fetched successfully',
       posts,
     });
   } catch (error) {
@@ -303,22 +327,25 @@ exports.flagPost = async (req, res, next) => {
 
     const updatedPost = await Post.findOneAndUpdate(
       { _id: postId },
-      {
-        $set: {
-          isFlagged: {
-            $cond: [
-              {
-                $and: [
-                  { $eq: ['$isFlagged', false] },
-                  { $eq: ['$isVerified', false] },
-                ],
-              },
-              true,
-              false,
-            ],
+      [
+        {
+          $set: {
+            isFlagged: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$isFlagged', false] },
+                    { $eq: ['$isVerified', false] },
+                  ],
+                },
+                true,
+                false,
+              ],
+            },
           },
         },
-      }
+      ],
+      { new: true }
     );
 
     console.log('Updated Flagged Post ', updatedPost);
@@ -355,6 +382,28 @@ exports.verifyPost = async (req, res, next) => {
     res.json({
       message: 'Post verified successfully',
       post: post,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.declinePost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+    const { isModerator } = req.user;
+
+    if (!isModerator) {
+      return res.status(403).json({
+        message: 'You are not authroized to access this resource',
+      });
+    }
+
+    const deletedPost = await Post.findOneAndDelete({ _id: postId });
+
+    res.json({
+      message: 'Post deleted successfully',
+      post: deletedPost,
     });
   } catch (error) {
     next(error);
