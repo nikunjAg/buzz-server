@@ -104,8 +104,10 @@ exports.getUserSuggestions = async (req, res, next) => {
   try {
     const { _id: userId } = req.user;
 
+    const excludeUsers = [userId, ...req.user.friends];
+
     const suggestions = await User.find(
-      { _id: { $ne: userId } },
+      { _id: { $nin: excludeUsers } },
       {
         name: 1,
         profileImage: 1,
